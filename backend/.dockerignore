@@ -1,0 +1,5 @@
+.venv
+.example_env
+docker-compose.yml
+__pycache__
+.swp
