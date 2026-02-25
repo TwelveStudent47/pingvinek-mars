@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from api.v1.map_router import app as map_router
 
 app = FastAPI(
     title="Pingvinek Mars API",
@@ -16,13 +17,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
-
+app.include_router(map_router)
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
