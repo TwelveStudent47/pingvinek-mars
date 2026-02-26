@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useStore } from '../../store/store';
 import { CELL, MAP_SIZE } from '../../simulation/mapData';
@@ -18,28 +18,32 @@ function Obstacles({ positions }) {
     const ref = useRef();
     const count = positions.length;
     const dummy = useMemo(() => new THREE.Object3D(), []);
+    const initialized = useRef(false);
 
-    useEffect(() => {
-        if (!ref.current || count === 0) return;
+    useFrame(() => {
+        if (!ref.current || count === 0 || initialized.current) return;
         positions.forEach((p, i) => {
             const h1 = hash(p.x, p.y);
             const h2 = hash(p.y, p.x);
             const h3 = hash(p.x + 100, p.y + 100);
-            dummy.position.set(p.x * S, 0.2 + h1 * 0.25, p.y * S);
-            dummy.scale.set(0.65 + h2 * 0.35, 0.35 + h1 * 0.55, 0.65 + h3 * 0.35);
+            const scaleY = 0.35 + h1 * 0.55;
+            const actualHeight = 0.5 * scaleY; // geometry height 0.5 * scaleY
+            dummy.position.set(p.x * S, actualHeight / 2, p.y * S);
+            dummy.scale.set(0.65 + h2 * 0.35, scaleY, 0.65 + h3 * 0.35);
             dummy.rotation.set(0, h2 * Math.PI, 0);
             dummy.updateMatrix();
             ref.current.setMatrixAt(i, dummy.matrix);
         });
         ref.current.instanceMatrix.needsUpdate = true;
-    }, [positions, dummy, count]);
+        initialized.current = true;
+    });
 
     if (count === 0) return null;
 
     return (
         <instancedMesh ref={ref} args={[null, null, count]} castShadow receiveShadow>
             <boxGeometry args={[S * 0.85, 0.5, S * 0.85]} />
-            <meshStandardMaterial color="#7a7a7a" roughness={0.95} metalness={0.05} />
+            <meshStandardMaterial color="#7a7a7a" emissive="#222222" emissiveIntensity={0.3} roughness={0.95} metalness={0.05} />
         </instancedMesh>
     );
 }
@@ -153,7 +157,7 @@ export default function Terrain() {
             {/* Ground */}
             <mesh position={[MAP_SIZE / 2 - 0.5, -0.05, MAP_SIZE / 2 - 0.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <planeGeometry args={[MAP_SIZE, MAP_SIZE]} />
-                <meshStandardMaterial color="#b5451c" roughness={0.92} />
+                <meshStandardMaterial color="#b5451c" emissive="#3a1008" emissiveIntensity={0.4} roughness={0.92} />
             </mesh>
 
             {/* Grid */}
