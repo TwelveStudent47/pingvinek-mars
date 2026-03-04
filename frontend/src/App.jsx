@@ -1,10 +1,16 @@
+import { useState } from 'react';
 import MarsScene from './components/three/MarsScene';
 import Dashboard from './components/dashboard/Dashboard';
+import LandingPage from './components/LandingPage';
 import './App.css';
 
 export default function App() {
+    const [showLanding, setShowLanding] = useState(true);
+
     return (
         <div className="app">
+            {showLanding && <LandingPage onEnter={() => setShowLanding(false)} />}
+
             <header className="topbar">
                 <div className="topbar-left">
                     <span className="topbar-dot" />
