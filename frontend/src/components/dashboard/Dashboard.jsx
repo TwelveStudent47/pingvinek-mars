@@ -4,6 +4,7 @@ import TimeDisplay from './TimeDisplay';
 import StatsPanel from './StatsPanel';
 import Charts from './Charts';
 import EventLog from './EventLog';
+import RoverPreview from './RoverPreview';
 
 export default function Dashboard({ side }) {
     if (side === 'left') {
@@ -14,9 +15,9 @@ export default function Dashboard({ side }) {
                     <p>Vezérlőpult</p>
                 </div>
                 <div className="dash-grid">
+                    <RoverPreview />
                     <SimControls />
                     <TimeDisplay />
-                    <BatteryGauge />
                 </div>
             </div>
         );
