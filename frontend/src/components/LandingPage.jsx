@@ -1,17 +1,35 @@
 import { useEffect, useState } from 'react';
+import { useStore } from '../store/store';
 import './LandingPage.css';
 
 export default function LandingPage({ onEnter }) {
-    const [phase, setPhase] = useState('idle'); // idle → counting → exiting
+    const [phase, setPhase]       = useState('idle');    // idle → counting → exiting
+    const [apiStatus, setApiStatus] = useState('loading'); // loading | ok | fallback
+    const loadMapFromApi = useStore((s) => s.loadMapFromApi);
 
     useEffect(() => {
-        // Start the reveal animation shortly after mount
+        // Kick off reveal animation
         const t1 = setTimeout(() => setPhase('counting'), 100);
-        // Auto-dismiss after 3s
+
+        // Fetch map from API
+        loadMapFromApi().then(({ source }) => {
+            setApiStatus(source === 'api' ? 'ok' : 'fallback');
+        });
+
+        // Auto-dismiss after 3s regardless of API result
         const t2 = setTimeout(() => setPhase('exiting'), 3100);
         const t3 = setTimeout(() => onEnter(), 3900);
+
         return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     }, []);
+
+    const apiLabel = {
+        loading:  '⏳ Térkép betöltése...',
+        ok:       '✅ Térkép betöltve a szerverről',
+        fallback: '⚠ Szerver nem elérhető — helyi térkép',
+    }[apiStatus];
+
+    const apiColor = { loading: '#e05a2088', ok: '#39ff14', fallback: '#ffc107' }[apiStatus];
 
     return (
         <div className={`lp-root ${phase === 'exiting' ? 'lp-exit' : ''}`}>
@@ -111,6 +129,7 @@ export default function LandingPage({ onEnter }) {
                     <div className="lp-countdown-bar">
                         <div className={`lp-countdown-fill ${phase === 'counting' ? 'lp-countdown-fill--run' : ''}`} />
                     </div>
+                    <span className="lp-api-status" style={{ color: apiColor }}>{apiLabel}</span>
                 </div>
             </div>
 

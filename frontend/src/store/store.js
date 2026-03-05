@@ -4,17 +4,19 @@
  * Manages: map, rover, simulation clock, battery, route, event log.
  */
 import { create } from 'zustand';
-import { generateMap, findMinerals, CELL, MAP_SIZE } from '../simulation/mapData';
+import { generateMap, findMinerals, parseApiMap, CELL, MAP_SIZE } from '../simulation/mapData';
 import { planRoute } from '../simulation/pathfinding';
 
 // ── Constants ────────────────────────────────────────
-const CYCLE_TICKS = 48;   // 24 hours in ticks (1 tick = 30 min)
-const DAY_TICKS = 32;     // 16 hours
-const K = 2;              // energy constant
-const SOLAR_CHARGE = 10;  // energy gained per tick during day
-const STANDBY_DRAIN = 1;  // idle consumption per tick
-const MINE_DRAIN = 2;     // mining consumption per tick
-const TICK_INTERVAL_BASE = 400; // ms per tick at 1× speed
+const CYCLE_TICKS = 48;
+const DAY_TICKS = 32;
+const K = 2;
+const SOLAR_CHARGE = 10;
+const STANDBY_DRAIN = 1;
+const MINE_DRAIN = 2;
+const TICK_INTERVAL_BASE = 400;
+
+const BACKEND_URL = 'http://localhost:5000';
 
 // ── Helpers ──────────────────────────────────────────
 const isDaytime = (tick) => (tick % CYCLE_TICKS) < DAY_TICKS;
@@ -68,12 +70,39 @@ function createInitialState() {
         // Logs (each entry recorded every tick while running)
         logs: [],
         logHistory: [], // condensed for charts: {tick, battery, distance, minerals}
+
+        // API state
+        mapLoaded: false,
+        mapSource: 'local', // 'api' | 'local'
     };
 }
 
 // ── Store ────────────────────────────────────────────
 export const useStore = create((set, get) => ({
     ...createInitialState(),
+
+    // ── API map loader ──
+    loadMapFromApi: async () => {
+        try {
+            const res = await fetch(`${BACKEND_URL}/map/`, {
+                signal: AbortSignal.timeout(8000),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const { map, startX, startY } = parseApiMap(data);
+            const minerals = findMinerals(map);
+            set({
+                map, startX, startY, minerals,
+                roverX: startX, roverY: startY,
+                mapLoaded: true, mapSource: 'api',
+            });
+            return { ok: true, source: 'api' };
+        } catch (err) {
+            console.warn('[Map] API nem elérhető, helyi térkép használata:', err.message);
+            set({ mapLoaded: true, mapSource: 'local' });
+            return { ok: false, source: 'local' };
+        }
+    },
 
     // ── Computed-like accessors ──
     isDaytime: () => isDaytime(get().tick),
@@ -282,6 +311,8 @@ export const useStore = create((set, get) => ({
         const s = get();
         if (s._intervalId) clearInterval(s._intervalId);
         set(createInitialState());
+        // Reload map from API after reset
+        get().loadMapFromApi();
     },
 
     setSimSpeed: (speed) => {
