@@ -163,8 +163,11 @@ export const useStore = create((set, get) => ({
     // ── Route generation ─────────────────────────────
     _fetchBackendRoute: async () => {
         try {
-            console.log('[Route] Fetching:', `${BACKEND_URL}/rover/route`);
-            const res = await fetch(`${BACKEND_URL}/rover/route`,
+            const s = get();
+            const maxTime = s.totalTimeHours; // hours, 0.5-step granularity
+            const url = `${BACKEND_URL}/rover/route?max_time=${maxTime}`;
+            console.log('[Route] Fetching:', url);
+            const res = await fetch(url,
                 { signal: AbortSignal.timeout(90000) });  // 90s — clustering can be slow
             console.log('[Route] Status:', res.status, res.ok);
             if (!res.ok) {
